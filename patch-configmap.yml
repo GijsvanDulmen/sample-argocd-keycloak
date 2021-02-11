@@ -1,0 +1,9 @@
+#issuer: https://keycloak.HOSTIP.nip.io/auth/realms/master
+data:
+  url: https://argocd.HOSTIP.nip.io
+  oidc.config: |
+    name: Keycloak
+    issuer: https://keycloak.HOSTIP.nip.io/auth/realms/master
+    clientID: argocd
+    clientSecret: $oidc.keycloak.clientSecret
+    requestedScopes: ["openid", "profile", "email", "groups"]

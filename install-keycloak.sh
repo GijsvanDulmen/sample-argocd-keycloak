@@ -4,14 +4,12 @@
 # https://raw.githubusercontent.com/keycloak/keycloak-quickstarts/latest/kubernetes-examples/keycloak.yaml
 kubectl apply -n argocd -f ./keycloak
 
-sleep 10
-
 # ingress for keycloak
 cat ingress-keycloak.yml | \
 sed "s/KEYCLOAK_HOST/keycloak.$(minikube -p sample-argocd-keycloak ip).nip.io/" | \
-kubectl create -f -
+kubectl apply -n argocd -f -
 
-Open "http://keycloak.$(minikube -p sample-argocd-keycloak ip).nip.io"
+# Open "http://keycloak.$(minikube -p sample-argocd-keycloak ip).nip.io"
 
 # do: https://argoproj.github.io/argo-cd/operator-manual/user-management/keycloak/
 

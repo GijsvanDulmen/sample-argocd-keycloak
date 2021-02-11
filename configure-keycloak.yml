@@ -1,0 +1,49 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: configure-keycloak-job
+spec:
+  parallelism: 1    
+  completions: 1    
+  template:         
+    metadata:
+      name: configure-keycloak-job
+      labels:
+        keycloak: job
+    spec:
+      containers:
+      - name: configure-keycloak-job
+        image: quay.io/keycloak/keycloak:12.0.2
+        command:
+        - /bin/sh
+        - -c
+        - |
+          cd /opt/jboss/keycloak/bin/
+          export BASE="https://argocd.HOSTIP.nip.io"
+          ./kcadm.sh config credentials --server http://keycloak:8080/auth --realm master --user admin --password admin
+          ./kcadm.sh create clients -r master -s clientId=argocd \
+              -s "redirectUris=[\"${BASE}/auth/callback\"]" \
+              -s "baseUrl=\"/applications\"" \
+              -s "rootUrl=\"${BASE}\"" \
+              -s "publicClient=false" \
+              -i > clientid.txt
+          export CLIENT_ID=`cat clientid.txt`
+          export CLIENT_SCOPE=`./kcadm.sh create client-scopes -r master -s protocol=openid-connect -s name=groups -i`
+          ./kcadm.sh create client-scopes/${CLIENT_SCOPE}/protocol-mappers/models -r master \
+              -s name=groups \
+              -s protocolMapper=oidc-group-membership-mapper \
+              -s protocol=openid-connect \
+              -s consentRequired=false \
+              -s 'config."full.path"=false' \
+              -s 'config."id.token.claim"=true' \
+              -s 'config."access.token.claim"=true' \
+              -s 'config."claim.name"=groups' \
+              -s 'config."userinfo.token.claim"=true'
+          ./kcadm.sh update clients/${CLIENT_ID} -r master -s "defaultClientScopes=[\"groups\"]"
+          ./kcadm.sh update clients/${CLIENT_ID}/default-client-scopes/${CLIENT_SCOPE}
+          export GROUP_ID=`./kcadm.sh create groups -r master -s name=ArgoCDAdmins -i`
+          export USER_ID=`./kcadm.sh create users -s username=argocduser -s enabled=true -r master -s totp=false -s emailVerified=false -s "requiredActions=[]" -i`
+          ./kcadm.sh update users/${USER_ID}/groups/${GROUP_ID} -r master -s realm=master -s userId=${USER_ID} -s groupId=${GROUP_ID} -n
+          ./kcadm.sh update users/${USER_ID}/reset-password -r master -s type=password -s value=argocduser -s temporary=false -n
+          echo -n `./kcadm.sh get clients/${CLIENT_ID}/client-secret --fields 'value' --format csv --noquotes` | base64
+      restartPolicy: Never

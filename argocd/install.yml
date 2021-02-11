@@ -2633,7 +2633,7 @@ spec:
         - /shared/app
         - --repo-server
         - argocd-repo-server:8081
-        - --insecure
+        # - --insecure
         image: argoproj/argocd:v1.8.4
         imagePullPolicy: Always
         livenessProbe:

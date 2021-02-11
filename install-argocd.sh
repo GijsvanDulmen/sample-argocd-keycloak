@@ -15,5 +15,3 @@ kubectl -n argocd patch secret argocd-secret \
 cat config-argocd.yml | \
 sed "s/HOSTIP/$(minikube -p sample-argocd-keycloak ip)/" | \
 kubectl apply -f -
-
-Open "http://argocd.$(minikube -p sample-argocd-keycloak ip).nip.io"
